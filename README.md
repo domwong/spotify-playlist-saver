@@ -18,17 +18,17 @@ Hit the root `/` endpoint, which will redirect you to Spotify to login and autho
 1. Create DynamoDB table `spotify` with `username` as primary key
 1. Run `build.sh` to build and deploy the lambda code to AWS.
 1. Create API gateway definition 
-  1. Point `/` to root
-  1. Point `/callback` to callback and add query string parameters `code`, `state`, and `error`
+   1. Point `/` to root
+   1. Point `/callback` to callback and add query string parameters `code`, `state`, and `error`
 1. Deploy the API
 1. Update lambdas with env variables
-  1. `REDIRECT_URI` - this is the API Gateway url to the `/callback` endpoint
-  1. `SPOTIFY_ID` - the client ID from Spotify 
-  1. `SPOTIFY_SECRET` - the client secret from Spotify
+   1. `REDIRECT_URI` - this is the API Gateway url to the `/callback` endpoint
+   1. `SPOTIFY_ID` - the client ID from Spotify 
+   1. `SPOTIFY_SECRET` - the client secret from Spotify
 1. Create an IAM role for the lambdas to run under. They need to
-  1. Create new cloud watch rules
-  1. Read and write to dynamo db
-  1. Write logs to cloud watch
+   1. Create new cloud watch rules
+   1. Read and write to dynamo db
+   1. Write logs to cloud watch
 
 
 ## TODO
