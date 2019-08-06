@@ -56,7 +56,6 @@ func handleRequest(ctx context.Context, ce CronEvent) (string, error) {
 	if err = dynamodbattribute.UnmarshalMap(res.Item, &ue); err != nil {
 		return serverError(err)
 	}
-
 	client := auth.NewClient(&ue.Token)
 	if err := savePlaylists(&client, &ue); err != nil {
 		return serverError(err)
@@ -66,39 +65,52 @@ func handleRequest(ctx context.Context, ce CronEvent) (string, error) {
 }
 
 func savePlaylists(client *spotify.Client, userEntry *sps.UserEntry) error {
-	pls, err := client.CurrentUsersPlaylists()
-	if err != nil {
-		return err
-	}
-	for _, v := range pls.Playlists {
-		found := false
-		for _, p := range userEntry.Playlists {
-			if v.Name == p {
-				found = true
-				break
+	limit := 50
+	off := 0
+	for {
+		pls, err := client.CurrentUsersPlaylistsOpt(&spotify.Options{
+			Limit:  &limit,
+			Offset: &off,
+		})
+
+		if err != nil {
+			return err
+		}
+		for _, v := range pls.Playlists {
+			found := false
+			for _, p := range userEntry.Playlists {
+				if v.Name == p {
+					found = true
+					break
+				}
 			}
-		}
-		if !found {
-			continue
-		}
+			if !found {
+				continue
+			}
 
-		pl, err := client.GetPlaylist(v.ID)
-		if err != nil {
-			return err
-		}
-		plTracks := make([]spotify.ID, len(pl.Tracks.Tracks))
-		for i, tr := range pl.Tracks.Tracks {
-			plTracks[i] = tr.Track.ID
-		}
+			pl, err := client.GetPlaylist(v.ID)
+			if err != nil {
+				return err
+			}
+			plTracks := make([]spotify.ID, len(pl.Tracks.Tracks))
+			for i, tr := range pl.Tracks.Tracks {
+				plTracks[i] = tr.Track.ID
+			}
 
-		cpl, err := client.CreatePlaylistForUser(userEntry.Username, fmt.Sprintf("%s %s", v.Name, time.Now().Format("2006-01-02")), "Autosaved snapshot", false)
-		if err != nil {
-			return err
-		}
+			cpl, err := client.CreatePlaylistForUser(userEntry.Username, fmt.Sprintf("%s %s", v.Name, time.Now().Format("2006-01-02")), "Autosaved snapshot", false)
+			if err != nil {
+				return err
+			}
 
-		if _, err = client.AddTracksToPlaylist(cpl.ID, plTracks...); err != nil {
-			return err
+			if _, err = client.AddTracksToPlaylist(cpl.ID, plTracks...); err != nil {
+				return err
+			}
+
 		}
+		if len(pls.Playlists) < limit {
+			break
+		}
+		off++
 
 	}
 	return nil
